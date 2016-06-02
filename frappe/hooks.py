@@ -86,6 +86,9 @@ standard_queries = {
 }
 
 doc_events = {
+	"User": {
+		"validate": "frappe.core.doctype.frappe_subscription_info.frappe_subscription_info.validate_max_users"
+	},
 	"*": {
 		"after_insert": "frappe.email.doctype.email_alert.email_alert.trigger_email_alerts",
 		"validate": "frappe.email.doctype.email_alert.email_alert.trigger_email_alerts",
@@ -115,6 +118,7 @@ scheduler_events = {
 		"frappe.model.utils.link_count.update_link_count",
 	],
 	"daily": [
+		"frappe.core.doctype.frappe_subscription_info.frappe_subscription_info.update_sizes"
 		"frappe.email.bulk.clear_outbox",
 		"frappe.desk.notifications.clear_notifications",
 		"frappe.core.doctype.scheduler_log.scheduler_log.set_old_logs_as_seen",
@@ -122,6 +126,7 @@ scheduler_events = {
 		"frappe.sessions.clear_expired_sessions",
 		"frappe.email.doctype.email_alert.email_alert.trigger_daily_alerts",
 		"frappe.async.remove_old_task_logs",
+		"frappe_subscription.utils.disable_scheduler_on_expiry",
 	],
 	"daily_long": [
 		"frappe.integrations.doctype.dropbox_backup.dropbox_backup.take_backups_daily"
@@ -158,3 +163,4 @@ bot_parsers = [
 	'frappe.utils.bot.CountBot'
 ]
 
+before_write_file = "frappe.core.doctype.frappe_subscription_info.frappe_subscription_info.validate_max_space"
