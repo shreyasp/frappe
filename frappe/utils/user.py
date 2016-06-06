@@ -8,6 +8,8 @@ from frappe import _dict
 import frappe.share
 from frappe import _
 
+class MaxUsersReachedError(frappe.ValidationError): pass
+
 class UserPermissions:
 	"""
 	A user permission object can be accessed as `frappe.get_user()`
@@ -204,11 +206,11 @@ class UserPermissions:
 
 		d.all_reports = self.get_all_reports()
 		return d
-		
+
 	def get_all_reports(self):
-		reports =  frappe.db.sql("""select name, report_type, ref_doctype from tabReport 
+		reports =  frappe.db.sql("""select name, report_type, ref_doctype from tabReport
 		    where ref_doctype in ('{0}')""".format("', '".join(self.can_get_report)), as_dict=1)
-			
+
 		return frappe._dict((d.name, d) for d in reports)
 
 def get_user_fullname(user):
@@ -316,14 +318,14 @@ def validate_max_users(doc, method):
 	from frappe.core.doctype.user.user import get_total_users
 	frappe_limits = get_limits()
 
-	if frappe.flags.in_test or doc.user_type == "Website User":
+	if doc.user_type == "Website User":
 		return
 
 	if not doc.enabled:
 		# don't validate max users when saving a disabled user
 		return
 
-	max_users = frappe_limits.get("max_users")
+	max_users = frappe_limits.get("max_users") if frappe_limits else None
 
 	if not max_users:
 		return
@@ -336,5 +338,5 @@ def validate_max_users(doc, method):
 		total_users += 1
 
 	if total_users > max_users:
-		print 'In here to compare'
-		frappe.throw(_("Sorry. You have reached the maximum user limit for your subscription. You can either disable an existing user or buy a higher subscription plan."))
+		frappe.throw(_("Sorry. You have reached the maximum user limit for your subscription. You can either disable an existing user or buy a higher subscription plan."),
+			MaxUsersReachedError)

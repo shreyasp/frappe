@@ -72,3 +72,26 @@ class TestUser(unittest.TestCase):
 		me.add_roles("System Manager")
 
 		self.assertTrue("System Manager" in [d.role for d in me.get("user_roles")])
+
+	def test_max_users_for_site(self):
+		from frappe.limits import set_limits
+		from frappe.core.doctype.user.user import get_total_users
+
+		set_limits({'max_users': get_total_users()})
+
+		# reload site config
+		from frappe import _dict
+		frappe.local.conf = _dict(frappe.get_site_config())
+
+		# Create a new user
+		user = frappe.new_doc('User')
+		user.email = 'test_max_users@example.com'
+		user.first_name = 'Test_max_user'
+
+		self.assertRaises(frappe.utils.user.MaxUsersReachedError, user.add_roles, 'System Manager')
+
+		if frappe.db.exists('User', 'test_max_users@example.com'):
+			frappe.delete_doc('User', 'test_max_users@example.com')
+
+		# Clear the site config
+		set_limits(None)

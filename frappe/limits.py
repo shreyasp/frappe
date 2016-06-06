@@ -70,12 +70,17 @@ def check_if_expired():
 
 @frappe.whitelist()
 def get_limits():
-	print frappe.get_conf().get("limits")
 	return frappe.get_conf().get("limits")
 
-
 def set_limits(limits):
-	frappe_limits = frappe.get_conf().get("limits") or {}
-	for key, value in limits:
-		frappe_limits[key] = value
-	update_site_config("limits", d, validate=False)
+	from frappe.installer import update_site_config
+
+	if not limits:
+		frappe_limits = 'None'
+	else:
+		# Add/Update current config options in site_config
+		frappe_limits = frappe.get_conf().get("limits") or {}
+		for key in limits.keys():
+			frappe_limits[key] = limits[key]
+
+	update_site_config("limits", frappe_limits, validate=False)
