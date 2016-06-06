@@ -5,9 +5,11 @@ from frappe.model.document import Document
 from frappe.core.doctype.user.user import get_total_users
 from frappe.utils import flt, cint, now_datetime, getdate, get_site_path
 from frappe.utils.file_manager import MaxFileSizeReachedError
+from frappe.utils.data import formatdate
 from frappe import _
 
-
+class SiteExpiredError(frappe.ValidationError):
+	pass
 
 def update_sizes():
 	from frappe.installer import update_site_config
@@ -41,12 +43,11 @@ def update_sizes():
 	d['database_size'] = database_size
 	update_site_config("limits", d, validate=False)
 
-
 def has_expired():
 	if not frappe.conf.get("stop_on_expiry") or frappe.session.user=="Administrator":
 		return False
 
-	expires_on = get_frappe_limits().get("expires_on")
+	expires_on = get_limits().get("expires_on")
 	if not expires_on:
 		return False
 
@@ -55,18 +56,16 @@ def has_expired():
 
 	return True
 
-
 def check_if_expired():
 	"""check if account is expired. If expired, do not allow login"""
 	if not has_expired():
 		return
-
 	# if expired, stop user from logging in
-	expires_on = formatdate(get_frappe_limits().get("expires_on"))
-
+	expires_on = formatdate(get_limits().get("expires_on"))
+	
 	frappe.throw("""Your subscription expired on <b>{}</b>.
 		To extend please drop a mail at <b>support@erpnext.com</b>""".format(expires_on),
-		frappe.AuthenticationError)
+		SiteExpiredError)
 
 @frappe.whitelist()
 def get_limits():

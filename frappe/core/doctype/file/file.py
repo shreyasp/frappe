@@ -365,6 +365,9 @@ def validate_max_space(file_size):
 	if not frappe_limits:
 		return
 
+	if not frappe_limits.has_key('max_space'):
+		return
+	
 	# In Gigabytes
 	max_space = flt(flt(frappe_limits['max_space']) * 1024, 2)
 

@@ -19,6 +19,9 @@ import frappe.utils
 from frappe.utils import get_sites, get_site_path
 from datetime import datetime
 from background_jobs import enqueue, get_jobs, queue_timeout
+from frappe.limits import has_expired
+from frappe.utils.data import get_datetime
+from frappe.core.doctype.user.user import STANDARD_USERS
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -219,7 +222,6 @@ def get_error_report(from_date=None, to_date=None, limit=10):
 	else:
 		return 0, "<p>Scheduler didn't encounter any problems.</p>"
 
-
 def scheduler_task(site, event, handler, now=False):
 	'''This is a wrapper function that runs a hooks.scheduler_events method'''
 	frappe.logger(__name__).info('running {handler} for {site} for event: {event}'.format(handler=handler, site=site, event=event))
@@ -241,7 +243,6 @@ def scheduler_task(site, event, handler, now=False):
 
 	frappe.logger(__name__).info('ran {handler} for {site} for event: {event}'.format(handler=handler, site=site, event=event))
 
-
 def reset_enabled_scheduler_events(login_manager):
 	if login_manager.info.user_type == "System User":
 		try:
@@ -256,11 +257,9 @@ def reset_enabled_scheduler_events(login_manager):
 			if os.path.exists(dormant_file):
 				os.remove(dormant_file)
 
-
 def disable_scheduler_on_expiry():
 	if has_expired():
 		disable_scheduler()
-
 
 def restrict_scheduler_events_if_dormant():
 	if is_dormant():
@@ -271,7 +270,6 @@ def restrict_scheduler_events(*args, **kwargs):
 	val = json.dumps(["daily", "daily_long", "weekly", "weekly_long", "monthly", "monthly_long"])
 	frappe.db.set_global('enabled_scheduler_events', val)
 
-		
 def disable_scheduler_on_expiry():
 	if has_expired():
 		from frappe.utils.scheduler import disable_scheduler
