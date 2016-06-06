@@ -73,7 +73,7 @@ class TestUser(unittest.TestCase):
 
 		self.assertTrue("System Manager" in [d.role for d in me.get("user_roles")])
 
-	def test_max_users_for_site(self):
+	def test_user_limit_for_site(self):
 		from frappe.limits import set_limits
 		from frappe.core.doctype.user.user import get_total_users
 

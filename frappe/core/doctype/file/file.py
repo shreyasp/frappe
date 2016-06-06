@@ -357,9 +357,12 @@ def validate_max_space(file_size):
 	"""Stop from writing file if max space limit is reached"""
 	from frappe.limits import get_limits
 	from frappe.installer import update_site_config
+	from frappe.utils import flt, cint
+	from frappe.utils.file_manager import MaxFileSizeReachedError
+
 	frappe_limits = get_limits()
 
-	if not frappe_limits or frappe_limits['max_space']:
+	if not frappe_limits:
 		return
 
 	# In Gigabytes
