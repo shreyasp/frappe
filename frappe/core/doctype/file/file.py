@@ -352,7 +352,6 @@ def check_file_permission(file_url):
 
 	raise frappe.PermissionError
 
-
 def validate_space_limit(file_size):
 	"""Stop from writing file if max space limit is reached"""
 	from frappe.installer import update_site_config
@@ -366,7 +365,7 @@ def validate_space_limit(file_size):
 
 	if not frappe_limits.has_key('space_limit'):
 		return
-	
+
 	# In Gigabytes
 	space_limit = flt(flt(frappe_limits['space_limit']) * 1024, 2)
 
@@ -386,7 +385,6 @@ def validate_space_limit(file_size):
 	new_files_size = flt(frappe_limits['files_size']) + file_size
 	set_limits({'files_size': file_size})
 
-
 def update_sizes():
 	from frappe.installer import update_site_config
 	# public files
@@ -402,17 +400,18 @@ def update_sizes():
 	backup_path = frappe.get_site_path("private", "backups")
 	backup_size = subprocess.check_output("du -ms {0}".format(backup_path), shell=True).split()[0]
 
-	database_path = os.path.join('/home/frappe', "database_sizes.txt")
-
-	database_size = 26
-	if os.path.exists(database_path):
-		with open(database_path, "r") as database_sizes:
-			for t in database_sizes.read().splitlines():
-				parts = t.split()
-				if parts[1] == frappe.conf.db_name:
-					database_size = parts[0]
-					break
+	database_size = get_database_size()
 
 	set_limits({'files_size': files_size,
 				'backup_size': backup_size,
 				'database_size': database_size})
+
+def get_database_size():
+	db_name = frappe.conf.db_name
+
+	# This query will get the database size in MB
+	query = '''SELECT table_schema "database_name", sum( data_length + index_length ) / 1024 / 1024 "database_size"
+		FROM information_schema.TABLES WHERE table_schema = '{0}' GROUP BY table_schema'''.format(db_name)
+
+	db_size = frappe.db.sql(query, as_dict=True)
+	return db_size[0].get('database_size')
