@@ -3,13 +3,14 @@
 from __future__ import unicode_literals
 
 import frappe, unittest
+import requests
 
 from frappe.model.delete_doc import delete_doc
 from frappe.utils.data import today, add_to_date
 from frappe import _dict
 from frappe.limits import SiteExpiredError, set_limits
 from frappe.utils import get_url
-import requests
+from frappe.installer import update_site_config
 
 test_records = frappe.get_test_records('User')
 
@@ -103,17 +104,18 @@ class TestUser(unittest.TestCase):
 	# [WIP] This causes an 'Lock wait timeout exceeded; try restarting transaction' while running on
 	# Travis as well as running on command line using `bench --site <site> run-tests --doctype User`
 	# Need to find out the solution to prevent DB LOCK :(
-	# def test_site_expiry(self):
-	# 	update_site_config('stop_on_expiry', True, validate=False)
-	# 	set_limits({'expires_on': add_to_date(today(), days=-1)})
-	# 	frappe.local.conf = _dict(frappe.get_site_config())
-	#
-	# 	res = requests.post(get_url(), params={'cmd': 'login', 'usr': 'test@example.com', 'pwd': 'testpassword',
-	# 		'device': 'desktop'})
-	#
-	# 	# While site is expired status code returned is 417 Failed Expectation
-	# 	print res.text
-	# 	self.assertEqual(res.status_code, 417)
-	#
-	# 	set_limits(None)
-	# 	frappe.local.conf = _dict(frappe.get_site_config())
+	def test_site_expiry(self):
+		update_site_config('stop_on_expiry', True, validate=False)
+		set_limits({'expires_on': add_to_date(today(), days=-1)})
+		frappe.local.conf = _dict(frappe.get_site_config())
+
+		frappe.db.commit()
+
+		res = requests.post(get_url(), params={'cmd': 'login', 'usr': 'test@example.com', 'pwd': 'testpassword',
+			'device': 'desktop'})
+
+		# While site is expired status code returned is 417 Failed Expectation
+		self.assertEqual(res.status_code, 417)
+
+		set_limits(None)
+		frappe.local.conf = _dict(frappe.get_site_config())

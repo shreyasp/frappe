@@ -4,6 +4,9 @@ import hashlib, os
 import frappe
 from frappe.commands import pass_context, get_site
 from frappe.commands.scheduler import _is_scheduler_enabled
+from frappe.commands import get_site
+from frappe.limits import set_limits, get_limits
+from frappe.installer import update_site_config
 
 @click.command('new-site')
 @click.argument('site')
@@ -336,20 +339,34 @@ def set_admin_password(context, admin_password):
 @click.argument('value')
 @pass_context
 def set_limit(context, site, limit, value):
-	"Set user / space / email limit for a site. Set as none for no limit."
-	from frappe.commands import get_site
-	from frappe.limits import set_limits, get_limits
+	"""Sets user / space / email limit for a site"""
 	if not site:
 		site = get_site(context)
+
 	with frappe.init_site(site):
-		limit = limit+'_limit'
-		if value.lower() == 'none':
-			if limit in get_limits():
-				set_limits({limit : "None"})
-			else:
-				return
-		else:
-			set_limits({limit: int(value)})
+		limit += '_limit'
+
+		# Space can be float, while other should be integers
+		val = float(value) if limit == 'space_limit' else int(value)
+		set_limits({limit : val})
+
+@click.command('clear-limit')
+@click.option('--site', help='site name')
+@click.argument('limit', type=click.Choice(['email', 'space', 'user']))
+@pass_context
+def clear_limit(context, site, limit):
+	"""Clears given limit from the site config, and removes limit from site config if its empty"""
+	if not site:
+		site = get_site(context)
+
+	with frappe.init_site(site):
+		limit += '_limit'
+		set_limits({limit : 'None'})
+
+		# Remove limits from the site_config, if it's empty
+		cur_limits = get_limits()
+		if not cur_limits:
+			update_site_config('limits', 'None', validate=False)
 
 
 commands = [
@@ -368,5 +385,6 @@ commands = [
 	set_admin_password,
 	uninstall,
 	set_limit,
+	clear_limit,
 	_use,
 ]

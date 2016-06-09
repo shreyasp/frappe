@@ -389,16 +389,16 @@ def update_sizes():
 	from frappe.installer import update_site_config
 	# public files
 	files_path = frappe.get_site_path("public", "files")
-	files_size = flt(subprocess.check_output("du -ms {0}".format(files_path), shell=True).split()[0])
+	files_size = flt(subprocess.check_output(['du', '-ms', files_path]).split()[0])
 
 	# private files
 	files_path = frappe.get_site_path("private", "files")
 	if os.path.exists(files_path):
-		files_size += flt(subprocess.check_output("du -ms {0}".format(files_path), shell=True).split()[0])
+		files_size += flt(subprocess.check_output(['du', '-ms', files_path]).split()[0])
 
 	# backups
 	backup_path = frappe.get_site_path("private", "backups")
-	backup_size = subprocess.check_output("du -ms {0}".format(backup_path), shell=True).split()[0]
+	backup_size = subprocess.check_output(['du', '-ms', backup_path]).split()[0]
 
 	database_size = get_database_size()
 
@@ -410,8 +410,8 @@ def get_database_size():
 	db_name = frappe.conf.db_name
 
 	# This query will get the database size in MB
-	query = '''SELECT table_schema "database_name", sum( data_length + index_length ) / 1024 / 1024 "database_size"
-		FROM information_schema.TABLES WHERE table_schema = '{0}' GROUP BY table_schema'''.format(db_name)
+	db_size = frappe.db.sql('''
+		SELECT table_schema "database_name", sum( data_length + index_length ) / 1024 / 1024 "database_size"
+		FROM information_schema.TABLES WHERE table_schema = %s GROUP BY table_schema''', db_name, as_dict=True)
 
-	db_size = frappe.db.sql(query, as_dict=True)
 	return db_size[0].get('database_size')
